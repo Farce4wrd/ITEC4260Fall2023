@@ -33,9 +33,25 @@ public class CarListingTest {
         }
 
     }
+    public int getTableCount(String tableName) {
+        String sql = "select count(*) from " + tableName;
+        int count = 0;
+        try {
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            System.out.println(rs.getInt("count(*)"));
+            count = rs.getInt("count(*)");
+        } catch(SQLException e) {
+            e.printStackTrace();
+        }
+        return count;
+    }
+
 
     @Test
     public void testCraigList(){
+        int beforeCount = getTableCount("cars");
         driver.get("https://atlanta.craigslist.org/d/cars-trucks/search/cta");
        /* WebElement element = driver.findElement(By.cssSelector("#search-results-page-1 > ol"));
        //WebElement childElement = element.findElement(By.tagName("<li>"));*/
@@ -68,6 +84,9 @@ public class CarListingTest {
                 url = "";
             }
             addCarListingtoDatabase(title,myprice,url,currentDate);
+            int afterCount = getTableCount("cars");
+            Assert.assertEquals(120, cars.size());
+            Assert.assertEquals("table should have 120 more rows",beforeCount+120,afterCount);
         }
 
 
@@ -113,6 +132,7 @@ public class CarListingTest {
             e.printStackTrace();
         }
     }
+
 
     @AfterClass
     public static void cleanUp() throws SQLException{

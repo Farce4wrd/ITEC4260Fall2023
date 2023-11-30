@@ -35,11 +35,11 @@ public class Project1 {
         EdgeOptions options = new EdgeOptions();
         options.addArguments("--remote-allow-origins=*");
         driver = new EdgeDriver(options);
-//        try{
-//            connection = DriverManager.getConnection("jdbc:sqlite:flightData.sqlite");
-//        }catch(SQLException e){
-//            e.printStackTrace();
-//        }
+        try{
+            connection = DriverManager.getConnection("jdbc:sqlite:flightData.sqlite");
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
     }
 
     @Test
@@ -106,38 +106,45 @@ public class Project1 {
     @Parameters({"Cancun","Las Vegas","Denver", "Rome", "Milan", "Paris", "Madrid", "Amsterdam", "Singapore"})
     public void googleFlight(String destination) throws InterruptedException {
         driver.get(googleTravel);
-
+        WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(30));
         ArrayList<String[]> myDates = getDates();
         WebElement toInput = driver.findElement(By.xpath("//input[@placeholder='Where to?']"));
-        toInput.sendKeys("Cancun");
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(15));
+        toInput.sendKeys(destination);
+        Thread.sleep(2000);
 
         WebElement firstSuggestion = driver.findElement(By.id("c2"));
         System.out.println(firstSuggestion);
         firstSuggestion.click();
         String[] firstDates = myDates.get(0);
-
+        Thread.sleep(2000);
 
         WebElement departDateInput = driver.findElement(By.xpath("//input[@placeholder='Departure']"));
         departDateInput.clear();
+        departDateInput.sendKeys(Keys.CONTROL + "a"); // Select all text
+        departDateInput.sendKeys(Keys.DELETE);
         departDateInput.sendKeys(firstDates[0]);
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
+        System.out.println(firstDates[0]);
+        Thread.sleep(3000);
 
         // Enter the return date
         WebElement returnDateInput = driver.findElement(By.xpath("//input[@placeholder='Return']"));
         returnDateInput.clear();
-        returnDateInput.sendKeys(firstDates[1]);
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
+        returnDateInput.sendKeys(firstDates[1], Keys.ENTER);
+        Thread.sleep(3000);
 
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
+
+        ////*[@id="yDmH0d"]/c-wiz[2]/div/div[2]/c-wiz/div[1]/c-wiz/div[2]/div[1]/div[1]/div[2]/div/button
         WebElement searchButton = driver.findElement(By.cssSelector("#yDmH0d > c-wiz.zQTmif.SSPGKf > div > div:nth-child(2) > c-wiz > div.cKvRXe > c-wiz > div.vg4Z0e > div:nth-child(1) > div.SS6Dqf.POQx1c > div.MXvFbd > div > button"));
         searchButton.click();
         WebElement priceText = driver.findElement(By.cssSelector("#yDmH0d > c-wiz.zQTmif.SSPGKf > div > div:nth-child(2) > c-wiz > div.cKvRXe > c-wiz > div.PSZ8D.EA71Tc > div.FXkZv > div:nth-child(4) > ul > li:nth-child(1) > div > div.yR1fYc > div > div.OgQvJf.nKlB3b > div.U3gSDe > div.BVAVmf.I11szd.POX3ye > div.YMlIz.FpEdX > span"));
+        wait.until(ExpectedConditions.visibilityOf(priceText));
         String price = priceText.getText();
         //allPrices.add(price);
         int parsedPrice = Integer.parseInt(price.replace("$","").replace(",",""));
         putTravelDataInDatabase(destination, parsedPrice, firstDates[0],firstDates[1]);
 
-        WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(30));
+
         for(int i= 1; i<myDates.size(); i++){
             String[] dates = myDates.get(i);
             departDateInput = driver.findElement(By.xpath("//input[@placeholder='Departure']"));
@@ -168,10 +175,12 @@ public class Project1 {
      * Runs the assert method after the test that places data into the db is complete
      */
     @AfterClass
-    public void AssertResults(){
+    public static void AssertResults() throws SQLException{
         Flight cheapFlight = getCheapestFlightFromDB();
         System.out.println(cheapFlight);
         Assert.assertEquals(387,cheapFlight.getPrice());
+        driver.close();
+        connection.close();
     }
 
 
@@ -235,7 +244,7 @@ public class Project1 {
      * Retrieves the cheapest flight from the database in the form of a Flight class
      * @return Flight
      */
-    private Flight getCheapestFlightFromDB(){
+    private static Flight getCheapestFlightFromDB(){
         Flight cheapFlight = null;
         String sql = "select * from flightData where price = (select min(price) from flightData)";
         int count = 0;

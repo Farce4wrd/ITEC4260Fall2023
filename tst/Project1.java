@@ -1,24 +1,26 @@
+import assignment1.Flight;
+import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
 import org.asynchttpclient.util.DateUtils;
+import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.openqa.selenium.*;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.edge.EdgeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.Duration;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
-
+@RunWith(JUnitParamsRunner.class)
 public class Project1 {
     private static EdgeDriver driver;
     private static final String hotwire = "https://www.hotwire.com/";
@@ -34,7 +36,7 @@ public class Project1 {
         options.addArguments("--remote-allow-origins=*");
         driver = new EdgeDriver(options);
 //        try{
-//            connection = DriverManager.getConnection("jdbc:sqlite:cars.sqlite");
+//            connection = DriverManager.getConnection("jdbc:sqlite:flightData.sqlite");
 //        }catch(SQLException e){
 //            e.printStackTrace();
 //        }
@@ -101,14 +103,15 @@ public class Project1 {
     }
 
     @Test
-    public void googleFlight() throws InterruptedException {
+    @Parameters({"Cancun","Las Vegas","Denver", "Rome", "Milan", "Paris", "Madrid", "Amsterdam", "Singapore"})
+    public void googleFlight(String destination) throws InterruptedException {
         driver.get(googleTravel);
-        ArrayList<String> allPrices = new ArrayList<String>();
+
         ArrayList<String[]> myDates = getDates();
         WebElement toInput = driver.findElement(By.xpath("//input[@placeholder='Where to?']"));
         toInput.sendKeys("Cancun");
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(15));
-        //WebElement firstSuggestion = driver.findElement(By.xpath("//li[@role='option'][1]"));
+
         WebElement firstSuggestion = driver.findElement(By.id("c2"));
         System.out.println(firstSuggestion);
         firstSuggestion.click();
@@ -130,8 +133,9 @@ public class Project1 {
         searchButton.click();
         WebElement priceText = driver.findElement(By.cssSelector("#yDmH0d > c-wiz.zQTmif.SSPGKf > div > div:nth-child(2) > c-wiz > div.cKvRXe > c-wiz > div.PSZ8D.EA71Tc > div.FXkZv > div:nth-child(4) > ul > li:nth-child(1) > div > div.yR1fYc > div > div.OgQvJf.nKlB3b > div.U3gSDe > div.BVAVmf.I11szd.POX3ye > div.YMlIz.FpEdX > span"));
         String price = priceText.getText();
-        allPrices.add(price);
-        //System.out.println(price);
+        //allPrices.add(price);
+        int parsedPrice = Integer.parseInt(price.replace("$","").replace(",",""));
+        putTravelDataInDatabase(destination, parsedPrice, firstDates[0],firstDates[1]);
 
         WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(30));
         for(int i= 1; i<myDates.size(); i++){
@@ -142,38 +146,40 @@ public class Project1 {
             departDateInput.sendKeys(Keys.DELETE);
             departDateInput.sendKeys(dates[0]);
             Thread.sleep(3000);
-            //driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
+
             returnDateInput = driver.findElement(By.xpath("//input[@placeholder='Return']"));
             returnDateInput.clear();
             returnDateInput.sendKeys(dates[1], Keys.ENTER);
             Thread.sleep(3000);
-            //driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
-            //wait.until(ExpectedConditions.not(ExpectedConditions.stalenessOf(priceText)));
+
             priceText = driver.findElement(By.cssSelector("#yDmH0d > c-wiz.zQTmif.SSPGKf > div > div:nth-child(2) > c-wiz > div.cKvRXe > c-wiz > div.PSZ8D.EA71Tc > div.FXkZv > div:nth-child(4) > ul > li:nth-child(1) > div > div.yR1fYc > div > div.OgQvJf.nKlB3b > div.U3gSDe > div.BVAVmf.I11szd.POX3ye > div.YMlIz.FpEdX > span"));
             wait.until(ExpectedConditions.visibilityOf(priceText));
             price = priceText.getText();
-            allPrices.add(price);
+            parsedPrice = Integer.parseInt(price.replace("$","").replace(",",""));
+            putTravelDataInDatabase(destination, parsedPrice, dates[0],dates[1]);
+            //allPrices.add(price);
         }
-        for(String pr : allPrices){
-            System.out.println(pr);
-        }
+
+
+
+    }
+
+    /**
+     * Runs the assert method after the test that places data into the db is complete
+     */
+    @AfterClass
+    public void AssertResults(){
+        Flight cheapFlight = getCheapestFlightFromDB();
+        System.out.println(cheapFlight);
+        Assert.assertEquals(387,cheapFlight.getPrice());
     }
 
 
 
-
-
-
-//        departDateInput.clear();
-//        departDateInput.sendKeys("2024-05-01");
-//        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
-//        returnDateInput.clear();
-//        returnDateInput.sendKeys("2024-05-07");
-//        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
-
-
-
-    //returns [,]
+    /**
+     *
+     * @return list of dates from May to August in a list of [fromDate, toDate]
+     */
     public ArrayList<String[]> getDates(){
         ArrayList<String[]> res = new ArrayList<String[]>();
         //navigate from month to month
@@ -203,30 +209,52 @@ public class Project1 {
         return res;
 
     }
-    @Test
-    public void testDateList(){
-        ArrayList<String[]> myDates = getDates();
-        System.out.println(myDates.size());
-//        for(String[] date : myDates){
-//            System.out.println(Arrays.toString(date));
-//        }
-        String[] tes = myDates.get(0);
-        System.out.println(tes[0]);
-        System.out.println(tes[1]);
-    }
 
-    private void putTravelDataInDatabase(String title, int price, String url, String currentDate){
-        String sql = "insert into cars (subject, price, url, timestamp) values (?,?,?,?)";
+    /**
+     * Places the travel info into the database
+     * @param destination
+     * @param price
+     * @param fromDate
+     * @param toDate
+     */
+    private void putTravelDataInDatabase(String destination, int price, String fromDate, String toDate){
+        String sql = "insert into flightData (destination, price, fromDate, toDate) values (?,?,?,?)";
         try{
             PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setString(1, title);
+            ps.setString(1, destination);
             ps.setInt(2, price);
-            ps.setString(3, url);
-            ps.setString(4, currentDate);
+            ps.setString(3, fromDate);
+            ps.setString(4, toDate);
             ps.executeUpdate();
         }catch(SQLException e){
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Retrieves the cheapest flight from the database in the form of a Flight class
+     * @return Flight
+     */
+    private Flight getCheapestFlightFromDB(){
+        Flight cheapFlight = null;
+        String sql = "select * from flightData where price = (select min(price) from flightData)";
+        int count = 0;
+        try{
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            //Working on the result set
+            while(rs.next()){
+                String destination = rs.getString("destination");
+                int price = rs.getInt("price");
+                String fromDate = rs.getString("FromDate");
+                String toDate = rs.getString("ToDate");
+                cheapFlight = new Flight(destination, price, fromDate, toDate);
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
+
+        return cheapFlight;
     }
 
 }

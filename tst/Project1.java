@@ -1,11 +1,22 @@
 import junitparams.Parameters;
+import org.asynchttpclient.util.DateUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openqa.selenium.*;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.edge.EdgeOptions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.time.Duration;
+import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 
 public class Project1 {
@@ -13,7 +24,7 @@ public class Project1 {
     private static final String hotwire = "https://www.hotwire.com/";
 
     private static final String googleTravel ="https://www.google.com/travel/flights?tcfs&ved=2ahUKEwi-4e3jieaCAxVOgwMIHeWdADAQ0I8EegQIAxAJ&ictx=2";
-
+    private static Connection connection;
     private static final String travel ="https://www.expedia.com/";
     private static final String travel2 = "https://www.kayak.com/";
     private static final String travel3 = "https://www.booking.com/packages.html?aid=304142&label=gen173bo-1DCAEoggI46AdIM1gDaI8CiAEBmAExuAEXyAEM2AED6AEB-AECiAIBmAICqAIDuAK_nP-qBsACAdICJDM3Zjc0MzZkLTgwZmQtNDlkMy1hYjRhLWIxYzc2NjliZTVkOdgCBOACAQ&sid=18d21f300d0af9311c5affecc7f568e7";
@@ -22,6 +33,11 @@ public class Project1 {
         EdgeOptions options = new EdgeOptions();
         options.addArguments("--remote-allow-origins=*");
         driver = new EdgeDriver(options);
+//        try{
+//            connection = DriverManager.getConnection("jdbc:sqlite:cars.sqlite");
+//        }catch(SQLException e){
+//            e.printStackTrace();
+//        }
     }
 
     @Test
@@ -85,12 +101,10 @@ public class Project1 {
     }
 
     @Test
-    public void googleFlight(){
+    public void googleFlight() throws InterruptedException {
         driver.get(googleTravel);
-//        WebElement fromCity = driver.findElement(By.cssSelector("#ow60 > div.cQnuXe.k0gFV > div > div > input"));
-//        fromCity.sendKeys("Atlanta");
-
-        //WebElement toCity = driver.findElement(By.cssSelector("#i21 > div.e5F5td.vxNK6d > div > div > div.cQnuXe.k0gFV > div > div > input"));
+        ArrayList<String> allPrices = new ArrayList<String>();
+        ArrayList<String[]> myDates = getDates();
         WebElement toInput = driver.findElement(By.xpath("//input[@placeholder='Where to?']"));
         toInput.sendKeys("Cancun");
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(15));
@@ -98,46 +112,121 @@ public class Project1 {
         WebElement firstSuggestion = driver.findElement(By.id("c2"));
         System.out.println(firstSuggestion);
         firstSuggestion.click();
+        String[] firstDates = myDates.get(0);
+
 
         WebElement departDateInput = driver.findElement(By.xpath("//input[@placeholder='Departure']"));
         departDateInput.clear();
-        departDateInput.sendKeys("2024-05-01");
+        departDateInput.sendKeys(firstDates[0]);
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
 
         // Enter the return date
         WebElement returnDateInput = driver.findElement(By.xpath("//input[@placeholder='Return']"));
         returnDateInput.clear();
-        returnDateInput.sendKeys("2024-05-07");
+        returnDateInput.sendKeys(firstDates[1]);
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
-
-
-//        WebElement fromDate = driver.findElement(By.cssSelector("#yDmH0d > c-wiz.zQTmif.SSPGKf > div > div:nth-child(2) > c-wiz > div.cKvRXe > c-wiz > div.vg4Z0e > div:nth-child(1) > div.SS6Dqf.POQx1c > div.AJxgH > div > div.rIZzse > div.bgJkKe.K0Tsu > div > div > div.cQnuXe.k0gFV > div > div > div:nth-child(1) > div > div.oSuIZ.YICvqf.kStSsc.ieVaIb > div > input"));
-//        fromDate.click();
-//        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
-//
-//        WebElement innerFromDate = driver.findElement(By.cssSelector("#ow79 > div.ZGEB9c.yRXJAe.P0ukfb.icWGef.bgJkKe.BtDLie.iWO5td > div > div.rj7qGc.ksI2Bc.P0ukfb > div.X4feqd.wDt51d > div.AotkO.uknidb > div.oSuIZ.YICvqf.kStSsc.ieVaIb"));
-//        innerFromDate.clear();
-//        innerFromDate.sendKeys("2024-05-01",Keys.ENTER);
-//        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
-//
-//        WebElement innerToDate = driver.findElement(By.cssSelector("#ow79 > div.ZGEB9c.yRXJAe.P0ukfb.icWGef.bgJkKe.BtDLie.iWO5td > div > div.rj7qGc.ksI2Bc.P0ukfb > div.X4feqd.wDt51d > div.AotkO.uknidb > div.oSuIZ.YICvqf.lJODHb.qXDC9e"));
-//        innerToDate.clear();
-//        innerToDate.sendKeys("2024-05-07",Keys.ENTER);
-//        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-//
-//
-//        WebElement closeDateButton = driver.findElement(By.cssSelector("#ow79 > div.ZGEB9c.yRXJAe.P0ukfb.icWGef.bgJkKe.BtDLie.iWO5td > div > div.akjk5c.FrVb0c > div.WXaAwc > div > button"));
-//        closeDateButton.click();
 
         WebElement searchButton = driver.findElement(By.cssSelector("#yDmH0d > c-wiz.zQTmif.SSPGKf > div > div:nth-child(2) > c-wiz > div.cKvRXe > c-wiz > div.vg4Z0e > div:nth-child(1) > div.SS6Dqf.POQx1c > div.MXvFbd > div > button"));
         searchButton.click();
+        WebElement priceText = driver.findElement(By.cssSelector("#yDmH0d > c-wiz.zQTmif.SSPGKf > div > div:nth-child(2) > c-wiz > div.cKvRXe > c-wiz > div.PSZ8D.EA71Tc > div.FXkZv > div:nth-child(4) > ul > li:nth-child(1) > div > div.yR1fYc > div > div.OgQvJf.nKlB3b > div.U3gSDe > div.BVAVmf.I11szd.POX3ye > div.YMlIz.FpEdX > span"));
+        String price = priceText.getText();
+        allPrices.add(price);
+        //System.out.println(price);
 
-        //#yDmH0d > c-wiz.zQTmif.SSPGKf > div > div:nth-child(2) > c-wiz > div.cKvRXe > c-wiz > div.vg4Z0e > div:nth-child(1) > div.SS6Dqf.POQx1c > div.AJxgH > div > div.rIZzse > div.bgJkKe.K0Tsu > div > div > div.cQnuXe.k0gFV > div > div > div:nth-child(1) > div > div.oSuIZ.YICvqf.kStSsc.ieVaIb > div > input
+        WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(30));
+        for(int i= 1; i<myDates.size(); i++){
+            String[] dates = myDates.get(i);
+            departDateInput = driver.findElement(By.xpath("//input[@placeholder='Departure']"));
+            departDateInput.clear();
+            departDateInput.sendKeys(Keys.CONTROL + "a"); // Select all text
+            departDateInput.sendKeys(Keys.DELETE);
+            departDateInput.sendKeys(dates[0]);
+            Thread.sleep(3000);
+            //driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
+            returnDateInput = driver.findElement(By.xpath("//input[@placeholder='Return']"));
+            returnDateInput.clear();
+            returnDateInput.sendKeys(dates[1], Keys.ENTER);
+            Thread.sleep(3000);
+            //driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
+            //wait.until(ExpectedConditions.not(ExpectedConditions.stalenessOf(priceText)));
+            priceText = driver.findElement(By.cssSelector("#yDmH0d > c-wiz.zQTmif.SSPGKf > div > div:nth-child(2) > c-wiz > div.cKvRXe > c-wiz > div.PSZ8D.EA71Tc > div.FXkZv > div:nth-child(4) > ul > li:nth-child(1) > div > div.yR1fYc > div > div.OgQvJf.nKlB3b > div.U3gSDe > div.BVAVmf.I11szd.POX3ye > div.YMlIz.FpEdX > span"));
+            wait.until(ExpectedConditions.visibilityOf(priceText));
+            price = priceText.getText();
+            allPrices.add(price);
+        }
+        for(String pr : allPrices){
+            System.out.println(pr);
+        }
+    }
+
+
+
+
+
+
+//        departDateInput.clear();
+//        departDateInput.sendKeys("2024-05-01");
+//        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
+//        returnDateInput.clear();
+//        returnDateInput.sendKeys("2024-05-07");
+//        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
+
+
+
+    //returns [,]
+    public ArrayList<String[]> getDates(){
+        ArrayList<String[]> res = new ArrayList<String[]>();
+        //navigate from month to month
+        for(int currMonth = 5; currMonth < 9; currMonth++){
+            String year = "2024-";
+            YearMonth yearMonthObj = YearMonth.of(2024, 5);
+            int daysInMonth = yearMonthObj.lengthOfMonth();
+            //navigate on each day in each month and get the first and add 7
+            int startDay = 1;
+            for(int i = 7; i<=daysInMonth; i++){
+                if(currMonth == 8 && i ==15){
+                    String beginDate = year+currMonth+"-"+startDay;
+                    String endDate = year+currMonth+"-"+(i);
+                    String[] returnResult = {beginDate, endDate};
+                    res.add(returnResult);
+                    //System.out.println(Arrays.toString(returnResult));
+                    break;
+                }
+                String beginDate = year+currMonth+"-"+startDay;
+                String endDate = year+currMonth+"-"+(i);
+                String[] returnResult = {beginDate, endDate};
+                res.add(returnResult);
+                startDay++;
+                //System.out.println(Arrays.toString(returnResult));
+            }
+        }
+        return res;
 
     }
-    private void clickElement(WebElement element){
-        JavascriptExecutor executor = (JavascriptExecutor) driver;
-        executor.executeScript("arguments[0].click();", element);
+    @Test
+    public void testDateList(){
+        ArrayList<String[]> myDates = getDates();
+        System.out.println(myDates.size());
+//        for(String[] date : myDates){
+//            System.out.println(Arrays.toString(date));
+//        }
+        String[] tes = myDates.get(0);
+        System.out.println(tes[0]);
+        System.out.println(tes[1]);
+    }
+
+    private void putTravelDataInDatabase(String title, int price, String url, String currentDate){
+        String sql = "insert into cars (subject, price, url, timestamp) values (?,?,?,?)";
+        try{
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, title);
+            ps.setInt(2, price);
+            ps.setString(3, url);
+            ps.setString(4, currentDate);
+            ps.executeUpdate();
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
     }
 
 }
